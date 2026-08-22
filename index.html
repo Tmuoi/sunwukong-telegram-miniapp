@@ -84,36 +84,87 @@
     </div>
   </div>
 
-  <script>
+  <sc<script>
     const tg = window.Telegram.WebApp;
 
     tg.ready();
     tg.expand();
 
-    const user = tg.initDataUnsafe?.user;
+    // URL Render API của bạn
+    const API_URL = "https://TEN-APP-CUA-BAN.onrender.com";
 
-    if (user) {
-      const name =
-        user.first_name ||
-        user.username ||
-        "Người chơi";
+    const statusEl = document.getElementById("status");
+    const welcomeEl = document.getElementById("welcome");
+    const playButton = document.getElementById("playButton");
 
-      document.getElementById("welcome").textContent =
-        "Xin chào, " + name + " 👋";
+    // Dữ liệu chỉ dùng để hiển thị giao diện
+    const unsafeUser = tg.initDataUnsafe?.user;
 
-      document.getElementById("status").textContent =
-        "Mini App đã kết nối Telegram.";
+    if (unsafeUser) {
+        const name =
+            unsafeUser.first_name ||
+            unsafeUser.username ||
+            "Người chơi";
+
+        welcomeEl.textContent = "Xin chào, " + name + " 👋";
+        statusEl.textContent = "Đang kết nối máy chủ...";
     } else {
-      document.getElementById("welcome").textContent =
-        "Xin chào người chơi 👋";
-
-      document.getElementById("status").textContent =
-        "Đang chạy ở chế độ trình duyệt.";
+        welcomeEl.textContent = "Xin chào người chơi 👋";
+        statusEl.textContent = "Không tìm thấy dữ liệu Telegram.";
     }
 
-    document.getElementById("playButton").addEventListener("click", () => {
-      document.getElementById("status").textContent =
-        "🎮 Trò chơi đang được khởi động...";
+    // Bắt đầu game
+    playButton.addEventListener("click", async () => {
+        playButton.disabled = true;
+        statusEl.textContent = "⏳ Đang tải dữ liệu người chơi...";
+
+        try {
+            // QUAN TRỌNG:
+            // Gửi initData thật của Telegram.
+            // Không gửi initDataUnsafe để server xác thực.
+            const initData = tg.initData;
+
+            if (!initData) {
+                throw new Error("Không có Telegram initData");
+            }
+
+            const response = await fetch(API_URL + "/api/player", {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    initData: initData
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(
+                    result.message || "Không thể tải dữ liệu người chơi"
+                );
+            }
+
+            console.log("PLAYER:", result.player);
+
+            statusEl.textContent =
+                "🎮 Chào mừng! Dữ liệu người chơi đã được tải.";
+
+            // Sau này chúng ta sẽ chuyển sang màn hình game ở đây.
+            // Ví dụ:
+            // showGame(result.player);
+
+        } catch (error) {
+            console.error("Lỗi:", error);
+
+            statusEl.textContent =
+                "❌ Không thể kết nối máy chủ. Vui lòng thử lại.";
+
+            playButton.disabled = false;
+        }
     });
   </script>
 
